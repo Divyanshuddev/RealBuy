@@ -15,13 +15,14 @@ import {
   Bot,
   Zap,
   CheckCircle2,
-  AtSign
+  AtSign,
+  AlertCircle
 } from 'lucide-react';
 import { useAuth } from '@/lib/context';
 
 export default function RegisterPage() {
   const router = useRouter();
-  const { switchUser, toast } = useAuth();
+  const { toast } = useAuth();
   const [name, setName] = useState('');
   const [username, setUsername] = useState('');
   const [email, setEmail] = useState('');
@@ -29,6 +30,7 @@ export default function RegisterPage() {
   const [showPassword, setShowPassword] = useState(false);
   const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
+  const [errorMessage, setErrorMessage] = useState('');
 
   // Password strength calculation
   const passwordStrength = useMemo(() => {
@@ -56,6 +58,7 @@ export default function RegisterPage() {
     }
 
     setLoading(true);
+    setErrorMessage('');
     try {
       const res = await fetch('/api/auth/register', {
         method: 'POST',
@@ -75,10 +78,14 @@ export default function RegisterPage() {
         toast('Account created! Welcome to RealBuy', 'success');
         window.location.href = '/';
       } else {
-        toast(data.detail || data.error || 'Registration failed', 'error');
+        const msg = data.detail || data.error || 'Registration failed';
+        setErrorMessage(msg);
+        toast(msg, 'error');
       }
     } catch (err: any) {
-      toast(err.message || 'Error creating account', 'error');
+      const msg = err.message || 'Error creating account';
+      setErrorMessage(msg);
+      toast(msg, 'error');
     } finally {
       setLoading(false);
     }
@@ -166,6 +173,19 @@ export default function RegisterPage() {
               Or fill your details
             </span>
           </div>
+
+          {/* Error Message Alert */}
+          {errorMessage && (
+            <div className="p-3.5 rounded-xl bg-rose-500/15 border border-rose-500/40 text-rose-300 text-xs font-mono flex items-start gap-2.5 shadow-lg">
+              <AlertCircle className="w-4 h-4 text-rose-400 shrink-0 mt-0.5" />
+              <div className="flex-1">
+                <span className="font-bold uppercase tracking-wider block text-[10px] text-rose-400 mb-0.5">
+                  Registration Error
+                </span>
+                <span>{errorMessage}</span>
+              </div>
+            </div>
+          )}
 
           {/* Registration Form */}
           <form onSubmit={handleRegister} className="space-y-4">

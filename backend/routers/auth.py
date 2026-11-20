@@ -50,12 +50,35 @@ def register(body: RegisterRequest, response: Response, request: Request):
     conn = get_connection()
     try:
         cursor = conn.cursor()
-        cursor.execute("SELECT id FROM users WHERE LOWER(username) = ? OR LOWER(email) = ?", 
-                       (body.username.strip().lower(), body.email.strip().lower()))
+        clean_user = body.username.strip().lower().replace(" ", "_")
+        clean_email = body.email.strip().lower()
+
+        if len(clean_user) < 3:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Username must be at least 3 characters long."
+            )
+
+        if len(body.password) < 6:
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail="Password must be at least 6 characters long."
+            )
+
+        # Check if username is taken
+        cursor.execute("SELECT id FROM users WHERE LOWER(username) = ?", (clean_user,))
         if cursor.fetchone():
             raise HTTPException(
                 status_code=status.HTTP_400_BAD_REQUEST,
-                detail="Username or email already exists."
+                detail=f"Username '@{body.username.strip()}' is already taken. Please choose another username."
+            )
+
+        # Check if email is already registered
+        cursor.execute("SELECT id FROM users WHERE LOWER(email) = ?", (clean_email,))
+        if cursor.fetchone():
+            raise HTTPException(
+                status_code=status.HTTP_400_BAD_REQUEST,
+                detail=f"An account with email '{body.email.strip()}' already exists. Please sign in instead."
             )
 
         user_id = f"u_{int(time.time())}_{uuid.uuid4().hex[:6]}"
@@ -64,7 +87,7 @@ def register(body: RegisterRequest, response: Response, request: Request):
         cursor.execute("""
             INSERT INTO users (id, username, email, password_hash, name, bio, avatar_url, is_verified, is_admin, role)
             VALUES (?, ?, ?, ?, ?, '', '', 0, 0, 'user')
-        """, (user_id, body.username.strip().lower(), body.email.strip().lower(), pw_hash, body.name.strip()))
+        """, (user_id, clean_user, clean_email, pw_hash, body.name.strip()))
         conn.commit()
 
         token = sign_token({"id": user_id, "username": body.username.strip().lower(), "role": "user"})
