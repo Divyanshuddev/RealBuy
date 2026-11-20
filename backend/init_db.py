@@ -175,6 +175,15 @@ CREATE TABLE IF NOT EXISTS reports (
     status TEXT DEFAULT 'pending',
     created_at DATETIME DEFAULT CURRENT_TIMESTAMP
 );
+
+CREATE TABLE IF NOT EXISTS auth_codes (
+    id TEXT PRIMARY KEY,
+    target TEXT NOT NULL,
+    code TEXT NOT NULL,
+    purpose TEXT NOT NULL,
+    expires_at REAL NOT NULL,
+    created_at DATETIME DEFAULT CURRENT_TIMESTAMP
+);
 """
 
 def ensure_database_initialized():

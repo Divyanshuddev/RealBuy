@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useState, useMemo } from 'react';
+import React, { useState, useMemo, useEffect, useRef } from 'react';
 import Link from 'next/link';
 import { useRouter } from 'next/navigation';
 import {
@@ -16,7 +16,11 @@ import {
   Zap,
   CheckCircle2,
   AtSign,
-  AlertCircle
+  AlertCircle,
+  KeyRound,
+  RefreshCw,
+  Check,
+  XCircle
 } from 'lucide-react';
 import { useAuth } from '@/lib/context';
 
@@ -31,6 +35,133 @@ export default function RegisterPage() {
   const [agreed, setAgreed] = useState(true);
   const [loading, setLoading] = useState(false);
   const [errorMessage, setErrorMessage] = useState('');
+
+  // Email verification checker state
+  const [emailAvailability, setEmailAvailability] = useState<{
+    status: 'idle' | 'checking' | 'available' | 'taken' | 'invalid';
+    message: string;
+  }>({ status: 'idle', message: '' });
+  const [verifyOtpSent, setVerifyOtpSent] = useState(false);
+  const [verifyOtpInput, setVerifyOtpInput] = useState('');
+  const [demoVerifyOtp, setDemoVerifyOtp] = useState('');
+  const [isEmailVerified, setIsEmailVerified] = useState(false);
+  const [verifyLoading, setVerifyLoading] = useState(false);
+  const [verifyError, setVerifyError] = useState('');
+
+  // Debounced email availability check
+  const checkTimeoutRef = useRef<NodeJS.Timeout | null>(null);
+
+  useEffect(() => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+
+    if (!cleanEmail) {
+      setEmailAvailability({ status: 'idle', message: '' });
+      return;
+    }
+
+    if (!cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      setEmailAvailability({ status: 'invalid', message: 'Incomplete email address' });
+      return;
+    }
+
+    setEmailAvailability({ status: 'checking', message: 'Checking email availability...' });
+
+    checkTimeoutRef.current = setTimeout(async () => {
+      try {
+        const res = await fetch('/api/auth/check-email', {
+          method: 'POST',
+          headers: { 'Content-Type': 'application/json' },
+          body: JSON.stringify({ email: cleanEmail }),
+        });
+        const data = await res.json();
+        if (res.ok) {
+          if (data.available) {
+            setEmailAvailability({ status: 'available', message: 'Email is available' });
+          } else {
+            setEmailAvailability({
+              status: 'taken',
+              message: 'Email already registered. Please sign in instead.',
+            });
+          }
+        } else {
+          setEmailAvailability({ status: 'invalid', message: data.detail || 'Invalid email format' });
+        }
+      } catch {
+        setEmailAvailability({ status: 'idle', message: '' });
+      }
+    }, 500);
+
+    return () => {
+      if (checkTimeoutRef.current) clearTimeout(checkTimeoutRef.current);
+    };
+  }, [email]);
+
+  // Request Email Verification OTP
+  const handleSendVerificationCode = async () => {
+    const cleanEmail = email.trim().toLowerCase();
+    if (!cleanEmail || !cleanEmail.includes('@') || !cleanEmail.includes('.')) {
+      toast('Please enter a valid email address first.', 'error');
+      return;
+    }
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/auth/send-verification-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: cleanEmail, check_available: true }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setVerifyOtpSent(true);
+        setDemoVerifyOtp(data.code || '');
+        toast(data.message || 'Verification code sent to your email', 'success');
+      } else {
+        const msg = data.detail || data.error || 'Failed to send verification code';
+        setVerifyError(msg);
+        toast(msg, 'error');
+      }
+    } catch (err: any) {
+      const msg = err.message || 'Error connecting to verification server';
+      setVerifyError(msg);
+      toast(msg, 'error');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
+
+  // Confirm Verification Code
+  const handleConfirmVerificationCode = async () => {
+    if (!verifyOtpInput.trim()) {
+      setVerifyError('Please enter the 6-digit verification code.');
+      return;
+    }
+    setVerifyLoading(true);
+    setVerifyError('');
+    try {
+      const res = await fetch('/api/auth/verify-email-code', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: email.trim().toLowerCase(), code: verifyOtpInput.trim() }),
+      });
+      const data = await res.json();
+      if (res.ok) {
+        setIsEmailVerified(true);
+        toast(data.message || 'Email successfully verified! Verified Buyer badge unlocked.', 'success');
+      } else {
+        const msg = data.detail || data.error || 'Invalid or expired code';
+        setVerifyError(msg);
+        toast(msg, 'error');
+      }
+    } catch (err: any) {
+      const msg = err.message || 'Error checking verification code';
+      setVerifyError(msg);
+      toast(msg, 'error');
+    } finally {
+      setVerifyLoading(false);
+    }
+  };
 
   // Password strength calculation
   const passwordStrength = useMemo(() => {
@@ -56,6 +187,10 @@ export default function RegisterPage() {
       toast('Password must be at least 6 characters long', 'error');
       return;
     }
+    if (emailAvailability.status === 'taken') {
+      setErrorMessage('This email is already registered. Please sign in or use a different email.');
+      return;
+    }
 
     setLoading(true);
     setErrorMessage('');
@@ -68,6 +203,8 @@ export default function RegisterPage() {
           username: username.trim().toLowerCase().replace(/\s+/g, '_'),
           email: email.trim().toLowerCase(),
           password,
+          is_email_verified: isEmailVerified,
+          verification_code: verifyOtpInput.trim() || undefined,
         }),
       });
       const data = await res.json();
@@ -75,7 +212,12 @@ export default function RegisterPage() {
         if (data.token) {
           localStorage.setItem('realbuy_token', data.token);
         }
-        toast('Account created! Welcome to RealBuy', 'success');
+        toast(
+          isEmailVerified
+            ? 'Account created with Verified Buyer badge! Welcome to RealBuy'
+            : 'Account created! Welcome to RealBuy',
+          'success'
+        );
         window.location.href = '/';
       } else {
         const msg = data.detail || data.error || 'Registration failed';
@@ -230,23 +372,187 @@ export default function RegisterPage() {
               </div>
             </div>
 
+            {/* Email Address with Availability Checker */}
             <div className="space-y-1.5">
-              <label className="block text-[11px] font-mono uppercase tracking-wider text-neutral-300">
-                Email Address
-              </label>
+              <div className="flex items-center justify-between">
+                <label className="block text-[11px] font-mono uppercase tracking-wider text-neutral-300">
+                  Email Address
+                </label>
+                {emailAvailability.status === 'available' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-emerald-400 font-bold">
+                    <Check className="w-3 h-3" />
+                    Available
+                  </span>
+                )}
+                {emailAvailability.status === 'taken' && (
+                  <span className="inline-flex items-center gap-1 text-[10px] font-mono text-rose-400 font-bold">
+                    <XCircle className="w-3 h-3" />
+                    Already registered
+                  </span>
+                )}
+                {emailAvailability.status === 'checking' && (
+                  <span className="text-[10px] font-mono text-neutral-400 animate-pulse">
+                    Checking...
+                  </span>
+                )}
+              </div>
               <div className="relative">
                 <input
                   type="email"
                   required
                   value={email}
-                  onChange={(e) => setEmail(e.target.value)}
+                  onChange={(e) => {
+                    setEmail(e.target.value);
+                    if (isEmailVerified) setIsEmailVerified(false);
+                    if (verifyOtpSent) setVerifyOtpSent(false);
+                  }}
                   placeholder="jordan@example.com"
-                  className="w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border border-[#2c2c2c] bg-[#0c0c0c] text-neutral-200 placeholder:text-neutral-600 focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600]/40 focus:outline-none transition-all font-mono"
+                  className={`w-full pl-10 pr-4 py-2.5 text-xs rounded-xl border ${
+                    emailAvailability.status === 'taken'
+                      ? 'border-rose-500/80 bg-rose-950/10'
+                      : emailAvailability.status === 'available'
+                      ? 'border-emerald-500/70 bg-emerald-950/10'
+                      : 'border-[#2c2c2c] bg-[#0c0c0c]'
+                  } text-neutral-200 placeholder:text-neutral-600 focus:border-[#ff6600] focus:ring-1 focus:ring-[#ff6600]/40 focus:outline-none transition-all font-mono`}
                 />
                 <Mail className="absolute left-3.5 top-3 w-4 h-4 text-neutral-500" />
               </div>
             </div>
 
+            {/* EMAIL VERIFICATION CHECKER SECTION */}
+            <div className="p-3.5 rounded-xl border border-[#2a2a2a] bg-[#121212] space-y-3">
+              <div className="flex items-center justify-between">
+                <div className="flex items-center gap-2">
+                  <ShieldCheck
+                    className={`w-4 h-4 ${isEmailVerified ? 'text-emerald-400' : 'text-[#ff6600]'}`}
+                  />
+                  <div>
+                    <span className="text-[11px] font-mono font-bold text-white uppercase tracking-wider block">
+                      Email Verification Checker
+                    </span>
+                    <span className="text-[10px] text-neutral-400 font-sans">
+                      Verify to earn the Verified Buyer trust badge immediately
+                    </span>
+                  </div>
+                </div>
+
+                {isEmailVerified ? (
+                  <span className="px-2 py-0.5 rounded-full bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 text-[10px] font-mono font-bold uppercase inline-flex items-center gap-1 shadow-[0_0_10px_rgba(16,185,129,0.2)]">
+                    <CheckCircle2 className="w-3 h-3" />
+                    Verified
+                  </span>
+                ) : (
+                  <span className="px-2 py-0.5 rounded-full bg-neutral-800 border border-neutral-700 text-neutral-400 text-[10px] font-mono uppercase">
+                    Optional Step
+                  </span>
+                )}
+              </div>
+
+              {/* Verification Error */}
+              {verifyError && (
+                <div className="p-2.5 rounded-lg bg-rose-500/15 border border-rose-500/30 text-rose-300 text-[11px] font-mono flex items-start gap-2">
+                  <AlertCircle className="w-3.5 h-3.5 text-rose-400 shrink-0 mt-0.5" />
+                  <span>{verifyError}</span>
+                </div>
+              )}
+
+              {/* State A: Not verified and no OTP sent yet */}
+              {!isEmailVerified && !verifyOtpSent && (
+                <div className="flex items-center justify-between gap-3 pt-1">
+                  <span className="text-[10px] text-neutral-400 font-mono">
+                    {email && email.includes('@')
+                      ? `Send 6-digit code to ${email}`
+                      : 'Enter email above to verify'}
+                  </span>
+                  <button
+                    type="button"
+                    onClick={handleSendVerificationCode}
+                    disabled={verifyLoading || !email || !email.includes('@') || emailAvailability.status === 'taken'}
+                    className="px-3 py-1.5 rounded-lg bg-[#1e1e1e] hover:bg-[#282828] text-neutral-200 border border-[#333333] hover:border-[#ff6600]/60 text-xs font-mono font-bold uppercase transition-all disabled:opacity-40 shrink-0"
+                  >
+                    {verifyLoading ? 'Sending...' : 'Verify Email (OTP)'}
+                  </button>
+                </div>
+              )}
+
+              {/* State B: OTP Sent - enter code */}
+              {!isEmailVerified && verifyOtpSent && (
+                <div className="space-y-3 pt-1">
+                  {/* Demo test code banner */}
+                  {demoVerifyOtp && (
+                    <div className="p-2.5 rounded-lg bg-[#1a1200] border border-amber-500/40 text-amber-300 text-xs font-mono flex items-center justify-between">
+                      <div className="flex items-center gap-1.5">
+                        <Sparkles className="w-3.5 h-3.5 text-amber-400 shrink-0" />
+                        <div>
+                          <span className="text-[9px] uppercase tracking-wider text-amber-400 block font-bold">
+                            TEST VERIFICATION OTP
+                          </span>
+                          <span className="text-white text-xs font-bold tracking-widest">{demoVerifyOtp}</span>
+                        </div>
+                      </div>
+                      <button
+                        type="button"
+                        onClick={() => setVerifyOtpInput(demoVerifyOtp)}
+                        className="px-2 py-0.5 rounded bg-amber-500/20 hover:bg-amber-500/30 text-amber-300 text-[9px] font-mono font-bold uppercase"
+                      >
+                        Auto-fill
+                      </button>
+                    </div>
+                  )}
+
+                  <div className="flex gap-2">
+                    <div className="relative flex-1">
+                      <input
+                        type="text"
+                        maxLength={6}
+                        value={verifyOtpInput}
+                        onChange={(e) => setVerifyOtpInput(e.target.value)}
+                        placeholder="Enter 6-digit code"
+                        className="w-full pl-8 pr-3 py-2 text-xs rounded-lg border border-[#333333] bg-[#0c0c0c] text-white placeholder:text-neutral-600 focus:border-emerald-500 focus:outline-none transition-all font-mono tracking-widest font-bold"
+                      />
+                      <KeyRound className="absolute left-2.5 top-2.5 w-3.5 h-3.5 text-neutral-500" />
+                    </div>
+                    <button
+                      type="button"
+                      onClick={handleConfirmVerificationCode}
+                      disabled={verifyLoading || !verifyOtpInput.trim()}
+                      className="px-3.5 py-2 rounded-lg bg-emerald-500 hover:bg-emerald-400 text-black font-mono font-bold text-xs uppercase transition-all disabled:opacity-40 shrink-0 flex items-center gap-1.5"
+                    >
+                      {verifyLoading ? 'Checking...' : 'Confirm'}
+                    </button>
+                  </div>
+
+                  <div className="flex justify-between items-center text-[10px] font-mono text-neutral-500">
+                    <span>Code expires in 15 minutes</span>
+                    <button
+                      type="button"
+                      onClick={handleSendVerificationCode}
+                      disabled={verifyLoading}
+                      className="text-[#ff6600] hover:underline"
+                    >
+                      Resend Code
+                    </button>
+                  </div>
+                </div>
+              )}
+
+              {/* State C: Successfully Verified */}
+              {isEmailVerified && (
+                <div className="p-2.5 rounded-lg bg-emerald-950/20 border border-emerald-500/30 text-emerald-300 text-xs font-mono flex items-center justify-between">
+                  <div className="flex items-center gap-2">
+                    <CheckCircle2 className="w-4 h-4 text-emerald-400 shrink-0" />
+                    <span className="text-[11px]">
+                      Ownership confirmed: <span className="text-white font-bold">{email}</span>
+                    </span>
+                  </div>
+                  <span className="text-[10px] text-emerald-400 font-bold uppercase">
+                    Badge Activated
+                  </span>
+                </div>
+              )}
+            </div>
+
+            {/* Password Field */}
             <div className="space-y-1.5">
               <label className="block text-[11px] font-mono uppercase tracking-wider text-neutral-300">
                 Password
@@ -319,7 +625,7 @@ export default function RegisterPage() {
 
             <button
               type="submit"
-              disabled={loading}
+              disabled={loading || emailAvailability.status === 'taken'}
               className="w-full py-3 rounded-xl bg-[#ff6600] hover:bg-[#ff771a] text-black font-mono font-bold text-xs uppercase tracking-wider transition-all disabled:opacity-50 shadow-[0_0_20px_rgba(255,102,0,0.3)] hover:shadow-[0_0_25px_rgba(255,102,0,0.45)] flex items-center justify-center gap-2"
             >
               {loading ? (
@@ -329,7 +635,9 @@ export default function RegisterPage() {
                 </>
               ) : (
                 <>
-                  <span>CREATE REALBUY ACCOUNT</span>
+                  <span>
+                    {isEmailVerified ? 'CREATE VERIFIED ACCOUNT' : 'CREATE REALBUY ACCOUNT'}
+                  </span>
                   <ArrowRight className="w-3.5 h-3.5" />
                 </>
               )}
