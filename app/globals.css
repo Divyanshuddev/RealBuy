@@ -1,0 +1,82 @@
+@tailwind base;
+@tailwind components;
+@tailwind utilities;
+
+:root {
+  --background: #080808;
+  --foreground: #f4f4f5;
+  --card: #121212;
+  --card-foreground: #f4f4f5;
+  --border: #222222;
+  --primary: #ff6600;
+  --primary-foreground: #000000;
+}
+
+.dark {
+  --background: #080808;
+  --foreground: #f4f4f5;
+  --card: #121212;
+  --card-foreground: #f4f4f5;
+  --border: #222222;
+  --primary: #ff6600;
+  --primary-foreground: #000000;
+}
+
+body {
+  background-color: #080808;
+  color: #f4f4f5;
+  font-family: Inter, system-ui, -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif;
+  min-height: 100vh;
+  letter-spacing: -0.01em;
+}
+
+/* Custom retro minimal scrollbars */
+::-webkit-scrollbar {
+  width: 5px;
+  height: 5px;
+}
+::-webkit-scrollbar-track {
+  background: #080808;
+}
+::-webkit-scrollbar-thumb {
+  background: #2a2a2a;
+  border-radius: 4px;
+}
+::-webkit-scrollbar-thumb:hover {
+  background: #ff6600;
+}
+
+/* Retro minimal accents */
+.retro-border {
+  border: 1px solid #222222;
+}
+
+.retro-border-orange {
+  border: 1px solid rgba(255, 102, 0, 0.35);
+}
+
+.retro-glow {
+  box-shadow: 0 0 25px -4px rgba(255, 102, 0, 0.25);
+}
+
+.retro-panel {
+  background: #111111;
+  border: 1px solid #222222;
+}
+
+.retro-tag {
+  font-family: 'JetBrains Mono', ui-monospace, Menlo, Monaco, monospace;
+  letter-spacing: 0.05em;
+  text-transform: uppercase;
+}
+
+/* Auth & Modern Glass Accents */
+.auth-glow-bg {
+  background: radial-gradient(circle at 50% 10%, rgba(255, 102, 0, 0.12) 0%, rgba(10, 10, 10, 0) 70%);
+}
+
+.auth-card-backdrop {
+  background: rgba(18, 18, 18, 0.88);
+  backdrop-filter: blur(20px);
+  -webkit-backdrop-filter: blur(20px);
+}
