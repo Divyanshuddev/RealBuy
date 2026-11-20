@@ -8,73 +8,22 @@ import {
   LogIn,
   Lock,
   Mail,
-  CheckCircle2,
   Eye,
   EyeOff,
   ArrowRight,
   ShieldCheck,
-  Bot,
-  UserCheck,
-  Zap,
-  Check
+  Bot
 } from 'lucide-react';
 import { useAuth } from '@/lib/context';
-import UserAvatar from '@/components/UserAvatar';
-
-const DEMO_PERSONAS = [
-  {
-    username: 'alexrivers',
-    name: 'Alex Rivers',
-    role: 'Audiophile & Tech Specialist',
-    avatar: '',
-    verified: true,
-  },
-  {
-    username: 'sarah_chen',
-    name: 'Sarah Chen',
-    role: 'Industrial Product Designer',
-    avatar: '',
-    verified: true,
-  },
-  {
-    username: 'marcus_fit',
-    name: 'Marcus Brody',
-    role: 'Fitness Athlete',
-    avatar: '',
-    verified: true,
-  },
-  {
-    username: 'elena_r',
-    name: 'Elena Rostova',
-    role: 'Home & Coffee Specialist',
-    avatar: '',
-    verified: true,
-  },
-  {
-    username: 'david_kim',
-    name: 'David Kim',
-    role: 'Gaming & Setup Enthusiast',
-    avatar: '',
-    verified: true,
-  },
-  {
-    username: 'admin',
-    name: 'RealBuy Admin',
-    role: 'Trust & Safety Administrator',
-    avatar: '',
-    isAdmin: true,
-  },
-];
 
 export default function LoginPage() {
   const router = useRouter();
-  const { user, switchUser, toast } = useAuth();
+  const { user, toast } = useAuth();
   const [emailOrUsername, setEmailOrUsername] = useState('');
   const [password, setPassword] = useState('');
   const [showPassword, setShowPassword] = useState(false);
   const [rememberMe, setRememberMe] = useState(true);
   const [loading, setLoading] = useState(false);
-  const [activePersona, setActivePersona] = useState<string | null>(null);
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
@@ -102,19 +51,12 @@ export default function LoginPage() {
     }
   };
 
-  const handlePersonaSelect = async (username: string) => {
-    setActivePersona(username);
-    toast(`Switching to persona @${username}...`, 'info');
-    await switchUser(username);
-  };
-
   const handleGoogleSimulated = async () => {
-    toast('Authenticating with Google...', 'info');
-    await switchUser('alexrivers');
+    toast('Google Sign-In integration is in verification. Please use your email and password.', 'info');
   };
 
   const handleForgotPassword = () => {
-    toast('Tip: For testing, use the 1-Click Demo Personas below to log in instantly.', 'info');
+    toast('If an account exists with this email, password reset instructions have been sent.', 'info');
   };
 
   return (
@@ -159,48 +101,6 @@ export default function LoginPage() {
             >
               Create Account
             </Link>
-          </div>
-
-          {/* Quick Demo Persona Switcher */}
-          <div className="rounded-xl bg-[#0c0c0c] border border-[#222222] p-4 space-y-3">
-            <div className="flex items-center justify-between">
-              <div className="flex items-center gap-1.5 text-[10px] font-mono font-bold uppercase tracking-wider text-[#ff6600]">
-                <Zap className="w-3.5 h-3.5 fill-[#ff6600]" />
-                <span>1-Click Demo Persona Sign-In</span>
-              </div>
-              <span className="text-[9px] text-neutral-500 font-mono">Instant testing</span>
-            </div>
-
-            <div className="grid grid-cols-2 sm:grid-cols-3 gap-2">
-              {DEMO_PERSONAS.map((p) => {
-                const isSelected = user?.username === p.username || activePersona === p.username;
-                return (
-                  <button
-                    key={p.username}
-                    type="button"
-                    onClick={() => handlePersonaSelect(p.username)}
-                    className={`relative p-2 rounded-xl text-left transition-all border group flex items-center gap-2 ${
-                      isSelected
-                        ? 'bg-[#1e140a] border-[#ff6600]/60 ring-1 ring-[#ff6600]/50'
-                        : 'bg-[#121212] border-[#222222] hover:border-[#ff6600]/40 hover:bg-[#161616]'
-                    }`}
-                  >
-                    <UserAvatar name={p.name} avatarUrl={p.avatar} size="xs" />
-                    <div className="truncate min-w-0 flex-1">
-                      <div className="text-[11px] font-bold text-white truncate flex items-center gap-1">
-                        {p.name.split(' ')[0]}
-                        {p.isAdmin ? (
-                          <span className="text-[8px] bg-red-500/20 text-red-400 px-1 rounded">ADM</span>
-                        ) : (
-                          <CheckCircle2 className="w-2.5 h-2.5 text-[#ff6600]" />
-                        )}
-                      </div>
-                      <div className="text-[9px] text-neutral-500 truncate font-mono">@{p.username}</div>
-                    </div>
-                  </button>
-                );
-              })}
-            </div>
           </div>
 
           {/* Social Sign In (Google) */}

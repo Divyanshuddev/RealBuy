@@ -85,8 +85,7 @@ export default function RegisterPage() {
   };
 
   const handleGoogleSimulated = async () => {
-    toast('Creating account with Google...', 'info');
-    await switchUser('alexrivers');
+    toast('Google Sign-Up integration is in verification. Please enter your name, email, and password below.', 'info');
   };
 
   return (
@@ -159,20 +158,6 @@ export default function RegisterPage() {
             </svg>
             <span className="font-mono tracking-wide">Sign Up with Google</span>
           </button>
-
-          {/* Quick Demo Access banner */}
-          <div className="flex items-center justify-between p-3 rounded-xl bg-[#0e0e0e] border border-[#222222]">
-            <div className="flex items-center gap-2">
-              <Zap className="w-3.5 h-3.5 text-[#ff6600]" />
-              <span className="text-[11px] text-neutral-300">Just exploring features?</span>
-            </div>
-            <Link
-              href="/login"
-              className="text-[10px] font-mono font-bold text-[#ff6600] hover:underline"
-            >
-              Use 1-Click Demo &rarr;
-            </Link>
-          </div>
 
           {/* Divider */}
           <div className="relative flex items-center justify-center">
