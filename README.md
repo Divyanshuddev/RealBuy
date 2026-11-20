@@ -6,6 +6,15 @@ RealBuy is a dedicated product intelligence and rating platform engineered to cu
 
 ---
 
+## 🌐 Live Production Links
+
+- **Frontend (Web App)**: [https://real-buy-eight.vercel.app](https://real-buy-eight.vercel.app) (Hosted on Vercel)
+- **Backend (API Service)**: [https://realbuy-zzcu.onrender.com](https://realbuy-zzcu.onrender.com) (Hosted on Render)
+- **Interactive API Documentation**: [https://realbuy-zzcu.onrender.com/docs](https://realbuy-zzcu.onrender.com/docs)
+- **API Health Check**: [https://realbuy-zzcu.onrender.com/api/health](https://realbuy-zzcu.onrender.com/api/health)
+
+---
+
 ## 🚀 Key Features
 
 - **🤖 AI-Generated Pros & Cons Analysis**: Automatically parses and synthesizes community ratings and comments into structured bullet points covering build quality, durability, and value.
@@ -28,12 +37,12 @@ RealBuy is a dedicated product intelligence and rating platform engineered to cu
 
 ---
 
-## 📦 Getting Started
+## 📦 Local Development
 
 ### 1. Clone the repository
 ```bash
-git clone https://github.com/your-username/realbuy-platform.git
-cd realbuy-platform
+git clone https://github.com/Divyanshuddev/RealBuy.git
+cd RealBuy
 ```
 
 ### 2. Install dependencies
@@ -55,12 +64,6 @@ cd ..
 ```
 - Frontend: `http://localhost:3000`
 - Backend API Docs: `http://localhost:8000/docs`
-
----
-
-## 🌐 Deployment
-
-For complete instructions on deploying the frontend to **Vercel** and the backend to **Render**, see [DEPLOYMENT.md](./DEPLOYMENT.md).
 
 ---
 

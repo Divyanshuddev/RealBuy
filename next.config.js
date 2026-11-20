@@ -1,5 +1,9 @@
 /** @type {import('next').NextConfig} */
-const BACKEND_URL = process.env.BACKEND_URL || process.env.NEXT_PUBLIC_BACKEND_URL || 'http://127.0.0.1:8000';
+const isDev = process.env.NODE_ENV === 'development';
+const BACKEND_URL =
+  process.env.BACKEND_URL ||
+  process.env.NEXT_PUBLIC_BACKEND_URL ||
+  (isDev ? 'http://127.0.0.1:8000' : 'https://realbuy-zzcu.onrender.com');
 
 const nextConfig = {
   reactStrictMode: true,
@@ -9,7 +13,8 @@ const nextConfig = {
       'images.pexels.com',
       'assets.stickpng.com',
       'm.media-amazon.com',
-      'plus.unsplash.com'
+      'plus.unsplash.com',
+      'realbuy-zzcu.onrender.com'
     ],
   },
   async rewrites() {

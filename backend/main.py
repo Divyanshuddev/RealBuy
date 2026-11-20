@@ -17,6 +17,7 @@ allowed_origins_env = os.getenv("ALLOWED_ORIGINS", "")
 custom_origins = [o.strip() for o in allowed_origins_env.split(",") if o.strip()]
 
 default_origins = [
+    "https://real-buy-eight.vercel.app",
     "http://localhost:3000",
     "http://127.0.0.1:3000",
     "http://localhost:8000",
@@ -25,7 +26,7 @@ default_origins = [
 
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=default_origins + custom_origins,
+    allow_origins=list(set(default_origins + custom_origins)),
     allow_origin_regex=r"https://.*\.vercel\.app",
     allow_credentials=True,
     allow_methods=["*"],
